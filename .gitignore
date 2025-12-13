@@ -1,0 +1,121 @@
+# Arquivos Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Arquivos de configuração do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arquivos de log
+*.log
+logs/
+*.log.*
+
+# Arquivos Excel (planilhas sensíveis)
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+
+# Exceção: se você quiser versionar uma planilha de exemplo
+!example.xlsx
+!template.xlsx
+
+# Selenium
+geckodriver.log
+chromedriver.log
+selenium-debug.log
+
+# Perfis do navegador
+chrome-profile/
+firefox-profile/
+selenium/
+
+# Arquivos de credenciais e configuração
+.env
+.env.local
+.env.*.local
+config.ini
+secrets.json
+credentials.json
+
+# Screenshots de erro (caso você adicione)
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Relatórios e outputs
+relatorios/
+outputs/
+resultados/
+
+# Cache do pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytype static type analyzer
+.pytype/
+
+# Certificados
+*.pem
+*.key
+*.crt
