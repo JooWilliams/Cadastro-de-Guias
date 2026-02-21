@@ -5,20 +5,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import time
+import datetime
 
 # ==================== CONFIGURAÇÕES ====================
 # Modifique estes valores conforme necessário
-MES_REFERENCIA = "12 - dezembro"
+MES_REFERENCIA = "02 - fevereiro"
+ANO_REFERENCIA = "2026"  # Ano de referência
+PERIODICIDADE = "SEMANAL"  # NOVO: Opções: MES_FECHADO, SEMANAL, QUINZENAL
 STATUS_INICIAL = "EMITIDO"
-DATA_VALIDADE = "31/12/2025"  # Formato brasileiro: DD/MM/AAAA
-CAMINHO_PLANILHA = r"C:"  # Caminho para sua planilha
-PORTA_DEBUG = 9222  # Porta do Chrome em modo debug
+DATA_VALIDADE = "28/02/2026"  # Formato brasileiro: DD/MM/AAAA
+CAMINHO_PLANILHA = r"C:\Documentos\Projects\pyCharm\leGuias\guias_extraidas.xlsx"  # Caminho para sua planilha
+PORTA_DEBUG = 9223  # Porta do Chrome em modo debug
 # =======================================================
 
 # Definição dos grupos de especialidades
 GRUPO_1 = ["TERAPIA OCUPACIONAL", "PSICOMOTRICIDADE", "MUSICOTERAPIA"]
 GRUPO_2 = ["FONOAUDIOLOGIA", "PSICOPEDAGOGIA", "PSICOTERAPIA"]
 GRUPO_3 = ["NUTRIÇÃO"]
+GRUPO_4 = ["TERAPIA ABA"]
 
 # Mapeamento dos nomes da planilha para os nomes do sistema
 MAPEAMENTO_ESPECIALIDADES = {
@@ -29,7 +33,8 @@ MAPEAMENTO_ESPECIALIDADES = {
     "Fonoaudiologia": "FONOAUDIOLOGIA",
     "Psicopedagogia": "PSICOPEDAGOGIA",
     "Psicoterapia": "PSICOTERAPIA",
-    "Nutrição": "NUTRIÇÃO"
+    "Nutrição": "NUTRIÇÃO",
+    "terapia aba": "TERAPIA ABA"
 }
 
 def converter_nome_especialidade(especialidade_planilha):
@@ -43,7 +48,7 @@ def converter_nome_especialidade(especialidade_planilha):
     # Se não encontrar no mapeamento, retorna em MAIÚSCULAS
     return especialidade_planilha.strip().upper()
 
-def conectar_chrome_debug(porta=9222):
+def conectar_chrome_debug(porta=9223):
     """Conecta ao Chrome em modo debug"""
     options = webdriver.ChromeOptions()
     options.add_experimental_option("debuggerAddress", f"localhost:{porta}")
@@ -69,6 +74,10 @@ def determinar_grupo(especialidade):
     for esp in GRUPO_3:
         if normalizar_especialidade(esp) in esp_normalizada or esp_normalizada in normalizar_especialidade(esp):
             return 3
+
+    for esp in GRUPO_4:
+        if normalizar_especialidade(esp) in esp_normalizada or esp_normalizada in normalizar_especialidade(esp):
+            return 4
     
     return None
 
@@ -106,7 +115,7 @@ def preencher_paciente(driver, wait, nome_paciente):
     )
     campo_paciente.clear()
     campo_paciente.send_keys(nome_paciente)
-    time.sleep(1.5)  # Aguarda autocomplete carregar
+    time.sleep(1.3)  # Aguarda autocomplete carregar
     
     # Clica na primeira sugestão que aparece
     try:
@@ -114,7 +123,7 @@ def preencher_paciente(driver, wait, nome_paciente):
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[1]/div[1]/div/div/div[2]/div/span"))
         )
         primeira_sugestao.click()
-        print(f"  ✓ Paciente selecionado: {nome_paciente}")
+        print(f"  ✓ Paciente: {nome_paciente}")
         return True
     except Exception as e:
         print(f"  ⚠ Paciente '{nome_paciente}' não encontrado no sistema")
@@ -145,7 +154,7 @@ def adicionar_especialidade(driver, wait, especialidade, quantidade):
     
     try:
         select_especialidade.select_by_value(especialidade_sistema)
-        print(f"    ✓ Especialidade selecionada: {especialidade_sistema}")
+        print(f"    ✓ Especialidade: {especialidade_sistema}")
     except Exception as e:
         print(f"    ⚠ Erro: Especialidade '{especialidade_sistema}' não encontrada no sistema")
         print(f"    Original na planilha: '{especialidade}'")
@@ -163,7 +172,7 @@ def adicionar_especialidade(driver, wait, especialidade, quantidade):
     # Clica no botão para adicionar
     botao_adicionar = driver.find_element(By.XPATH, "/html/body/div[1]/main/div[2]/form/div[3]/div[1]/button")
     botao_adicionar.click()
-    time.sleep(0.8)  # Aguarda a especialidade ser adicionada
+    time.sleep(0.6)  # Aguarda a especialidade ser adicionada
 
 def preencher_mes_referencia(driver, wait, mes_referencia):
     """Preenche o mês de referência"""
@@ -171,6 +180,14 @@ def preencher_mes_referencia(driver, wait, mes_referencia):
         EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[5]/div[1]/select"))
     ))
     select_mes.select_by_visible_text(mes_referencia)
+
+def preencher_ano_referencia(driver, wait, ano_referencia):
+    """Preenche o ano de referência"""
+    select_ano = Select(wait.until(
+        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[5]/div[2]/select"))
+    ))
+    select_ano.select_by_value(str(ano_referencia))
+    print(f"  ✓ Ano selecionado: {ano_referencia}")
 
 def preencher_data_validade(driver, wait, data_validade):
     """Preenche a data de validade"""
@@ -180,13 +197,30 @@ def preencher_data_validade(driver, wait, data_validade):
     campo_data.clear()
     campo_data.send_keys(data_validade)
 
+def preencher_periodicidade(driver, wait, periodicidade):
+    """Preenche a periodicidade (NOVO CAMPO)"""
+    select_periodicidade = Select(wait.until(
+        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[7]/div[1]/select"))
+    ))
+    select_periodicidade.select_by_value(periodicidade)
+    
+    # Mapeia os valores para nomes amigáveis para o print
+    nomes_periodicidade = {
+        "MES_FECHADO": "Mês fechado",
+        "SEMANAL": "Semanal",
+        "QUINZENAL": "Quinzenal"
+    }
+    nome_exibicao = nomes_periodicidade.get(periodicidade, periodicidade)
+    print(f"  ✓ Período: {nome_exibicao}")
+
 def preencher_status_inicial(driver, wait, status_inicial):
     """Preenche o status inicial usando o valor do option"""
     select_status = Select(wait.until(
-        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[7]/div/select"))
+        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[8]/div/select"))
     ))
     # Usa select_by_value ao invés de select_by_visible_text
     select_status.select_by_value(status_inicial)
+    print(f"  ✓ Status: {status_inicial}")
 
 def cadastrar_guia(driver, wait, guia):
     """Cadastra uma guia completa no sistema"""
@@ -202,7 +236,7 @@ def cadastrar_guia(driver, wait, guia):
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[1]/button"))
         )
         botao_nova_guia.click()
-        time.sleep(1)
+        time.sleep(2)
         
         # Preenche o paciente - se não encontrar, clica em voltar e pula esta guia
         if not preencher_paciente(driver, wait, guia['nome_beneficiario']):
@@ -217,7 +251,7 @@ def cadastrar_guia(driver, wait, guia):
                 time.sleep(1)
             except Exception as e:
                 print(f"  ⚠ Erro ao clicar em voltar: {str(e)}")
-            return False
+            return False, "Paciente não encontrado"
         
         preencher_numero_guia(driver, wait, guia['senha'])
         
@@ -228,30 +262,32 @@ def cadastrar_guia(driver, wait, guia):
             adicionar_especialidade(driver, wait, esp['nome'], esp['quantidade'])
         
         preencher_mes_referencia(driver, wait, MES_REFERENCIA)
+        preencher_ano_referencia(driver, wait, ANO_REFERENCIA)
         preencher_data_validade(driver, wait, DATA_VALIDADE)
+        preencher_periodicidade(driver, wait, PERIODICIDADE)  # NOVO: Preenche a periodicidade
         preencher_status_inicial(driver, wait, STATUS_INICIAL)
         
         # Clica no botão Criar Guia
         botao_criar = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[8]/button[2]"))
+            EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[9]/button[2]"))
         )
         botao_criar.click()
         
         print("✓ Guia cadastrada com sucesso!")
-        time.sleep(2)  # Aguarda a página processar
+        time.sleep(1.5)  # Aguarda a página processar
         
         # Clica no botão Voltar para retornar à listagem de guias
         botao_voltar = wait.until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/div[1]/div/div[1]/button"))
         )
         botao_voltar.click()
-        print("✓ Retornando para cadastrar próxima guia...")
-        time.sleep(1.5)  # Aguarda voltar à tela inicial
+        time.sleep(2)  # Aguarda voltar à tela inicial
         
-        return True
+        return True, "Sucesso"
         
     except Exception as e:
-        print(f"✗ Erro ao cadastrar guia: {str(e)}")
+        msg_erro = str(e)
+        print(f"✗ Erro ao cadastrar guia: {msg_erro}")
         # Tenta voltar para a tela inicial em caso de erro
         try:
             # Primeiro tenta o botão voltar do formulário de cadastro
@@ -271,7 +307,7 @@ def cadastrar_guia(driver, wait, guia):
                     print("  ⚠ Não foi possível voltar automaticamente")
         except:
             pass
-        return False
+        return False, f"Erro: {msg_erro}"
 
 def main():
     """Função principal"""
@@ -280,13 +316,15 @@ def main():
     print("="*60)
     print(f"\nConfigurações:")
     print(f"  Mês de Referência: {MES_REFERENCIA}")
+    print(f"  Ano de Referência: {ANO_REFERENCIA}")
+    print(f"  Periodicidade: {PERIODICIDADE}")
     print(f"  Status Inicial: {STATUS_INICIAL}")
     print(f"  Data de Validade: {DATA_VALIDADE}")
     print(f"  Planilha: {CAMINHO_PLANILHA}")
     print("="*60)
     
     try:
-        # Carrega a planilha
+        # Carrega a planilha da aba correta
         print("\nCarregando planilha...")
         df = pd.read_excel(CAMINHO_PLANILHA)
         print(f"✓ Planilha carregada: {len(df)} registros encontrados")
@@ -308,15 +346,26 @@ def main():
         erro = 0
         puladas = 0
         
+        # Lista para armazenar guias com erro
+        guias_com_erro = []
+        
         for i, guia in enumerate(guias, 1):
             print(f"\n[{i}/{len(guias)}]", end=" ")
-            resultado = cadastrar_guia(driver, wait, guia)
+            resultado, mensagem = cadastrar_guia(driver, wait, guia)
             
-            if resultado == True:
+            if resultado:
                 sucesso += 1
-            elif resultado == False:
-                # Verifica se foi erro ou guia pulada
-                if "Paciente não encontrado" in str(resultado):
+            else:
+                # Armazena os dados da guia e o motivo do erro
+                guia_erro = {
+                    "Beneficiário": guia['nome_beneficiario'],
+                    "Senha": guia['senha'],
+                    "Motivo": mensagem,
+                    "Hora": datetime.datetime.now().strftime("%H:%M:%S")
+                }
+                guias_com_erro.append(guia_erro)
+                
+                if "Paciente não encontrado" in mensagem:
                     puladas += 1
                 else:
                     erro += 1
@@ -326,13 +375,35 @@ def main():
         # Relatório final
         print("\n" + "="*60)
         print("RELATÓRIO FINAL")
-        print("="*60)
-        print(f"Total de guias processadas: {len(guias)}")
-        print(f"✓ Cadastradas com sucesso: {sucesso}")
-        print(f"⚠ Puladas (paciente não encontrado): {puladas}")
+        print(f"Guias processadas: {len(guias)}")
+        print(f"✓ Sucesso: {sucesso}")
+        print(f"⚠ Paciente não encontrado: {puladas}")
         print(f"✗ Erros: {erro}")
         print("="*60)
         
+        # Gera arquivo de log se houver erros
+        if guias_com_erro:
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            nome_arquivo_erro = f"erros_guias_{timestamp}.txt"
+            
+            print(f"\nGerando log de erros: {nome_arquivo_erro}")
+            try:
+                with open(nome_arquivo_erro, "w", encoding="utf-8") as f:
+                    f.write("="*60 + "\n")
+                    f.write(f"RELATÓRIO DE ERROS DE CADASTRO - {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+                    f.write("="*60 + "\n\n")
+                    
+                    for item in guias_com_erro:
+                        f.write(f"Beneficiário: {item['Beneficiário']}\n")
+                        f.write(f"Senha: {item['Senha']}\n")
+                        f.write(f"Motivo: {item['Motivo']}\n")
+                        f.write(f"Hora: {item['Hora']}\n")
+                        f.write("-" * 40 + "\n")
+                
+                print(f"Gerado '{nome_arquivo_erro}', Consulte para ver detalhes de erros")
+            except Exception as e:
+                print(f"✗ Erro ao criar arquivo de log: {e}")
+
     except FileNotFoundError:
         print(f"\n✗ Erro: Arquivo '{CAMINHO_PLANILHA}' não encontrado!")
     except Exception as e:
@@ -342,7 +413,7 @@ def main():
 
 if __name__ == "__main__":
     # Para iniciar o Chrome em modo debug, execute este comando no terminal:
-    # Windows: chrome.exe --remote-debugging-port=9222 --user-data-dir="C:/selenium/chrome-profile"
-    # Linux/Mac: google-chrome --remote-debugging-port=9222 --user-data-dir="/tmp/chrome-profile"
+    # Windows: chrome.exe --remote-debugging-port=9223 --user-data-dir="C:/selenium/chrome-profile"
+    # Linux/Mac: google-chrome --remote-debugging-port=9223 --user-data-dir="/tmp/chrome-profile"
     
     main()
