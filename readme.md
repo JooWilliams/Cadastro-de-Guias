@@ -66,7 +66,7 @@ MES_REFERENCIA = "12 - Dezembro"  # Mês de referência das guias
 STATUS_INICIAL = "EMITIDO"        # Status inicial das guias
 DATA_VALIDADE = "31/12/2024"      # Data de validade (DD/MM/AAAA)
 CAMINHO_PLANILHA = r"C:\caminho\para\sua\planilha.xlsx"
-PORTA_DEBUG = 9222                # Porta do Chrome em debug
+PORTA_DEBUG = 9223                # Porta do Chrome em debug
 ```
 
 ## 📊 Preparação da Planilha
@@ -280,7 +280,7 @@ MAPEAMENTO_ESPECIALIDADES = {
 **Causa:** Chrome não está em modo debug
 
 **Solução:**
-- Certifique-se de iniciar o Chrome com `--remote-debugging-port=9222`
+- Certifique-se de iniciar o Chrome com `--remote-debugging-port=9223`
 - Não feche a janela do terminal que abriu o Chrome
 
 ## 📝 Notas Importantes
