@@ -9,12 +9,12 @@ import datetime
 
 # ==================== CONFIGURAÇÕES ====================
 # Modifique estes valores conforme necessário
-MES_REFERENCIA = "02 - fevereiro"
+MES_REFERENCIA = "03 - março"
 ANO_REFERENCIA = "2026"  # Ano de referência
-PERIODICIDADE = "SEMANAL"  # NOVO: Opções: MES_FECHADO, SEMANAL, QUINZENAL
+PERIODICIDADE = "MES_FECHADO"  # NOVO: Opções: MES_FECHADO, SEMANAL, QUINZENAL
 STATUS_INICIAL = "EMITIDO"
-DATA_VALIDADE = "28/02/2026"  # Formato brasileiro: DD/MM/AAAA
-CAMINHO_PLANILHA = r"C:\Documentos\Projects\pyCharm\leGuias\guias_extraidas.xlsx"  # Caminho para sua planilha
+DATA_VALIDADE = "24/05/2026"  # Formato brasileiro: DD/MM/AAAA
+CAMINHO_PLANILHA = r"C:\Users\vinic\OneDrive\Ambiente de Trabalho\guias-porto-extraidas.xlsx"  # Caminho para sua planilha
 PORTA_DEBUG = 9223  # Porta do Chrome em modo debug
 # =======================================================
 
@@ -236,7 +236,7 @@ def cadastrar_guia(driver, wait, guia):
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[1]/button"))
         )
         botao_nova_guia.click()
-        time.sleep(2)
+        time.sleep(2.2)
         
         # Preenche o paciente - se não encontrar, clica em voltar e pula esta guia
         if not preencher_paciente(driver, wait, guia['nome_beneficiario']):
