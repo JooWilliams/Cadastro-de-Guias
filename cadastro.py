@@ -9,12 +9,12 @@ import datetime
 
 # ==================== CONFIGURAÇÕES ====================
 # Modifique estes valores conforme necessário
-MES_REFERENCIA = "03 - março"
-ANO_REFERENCIA = "2026"  # Ano de referência
-PERIODICIDADE = "MES_FECHADO"  # NOVO: Opções: MES_FECHADO, SEMANAL, QUINZENAL
+MES_REFERENCIA = "06 - junho"
+ANO_REFERENCIA = "2026"
+PERIODICIDADE = "SEMANAL"  # NOVO: Opções: MES_FECHADO, SEMANAL, QUINZENAL
 STATUS_INICIAL = "EMITIDO"
-DATA_VALIDADE = "24/05/2026"  # Formato brasileiro: DD/MM/AAAA
-CAMINHO_PLANILHA = r"C:\Users\vinic\OneDrive\Ambiente de Trabalho\guias-porto-extraidas.xlsx"  # Caminho para sua planilha
+DATA_VALIDADE = "06/06/2026"  # Formato brasileiro: DD/MM/AAAA
+CAMINHO_PLANILHA = r"C:\Documentos\Projects\cadastraGuia\guias\guias_extraidas_bradesco.xlsx"  # Caminho para sua planilha
 PORTA_DEBUG = 9223  # Porta do Chrome em modo debug
 # =======================================================
 
@@ -110,29 +110,33 @@ def agrupar_guias(df):
 
 def preencher_paciente(driver, wait, nome_paciente):
     """Preenche o campo de paciente"""
-    campo_paciente = wait.until(
-        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[1]/div[1]/div/div/div[1]/input"))
-    )
-    campo_paciente.clear()
-    campo_paciente.send_keys(nome_paciente)
-    time.sleep(1.3)  # Aguarda autocomplete carregar
-    
-    # Clica na primeira sugestão que aparece
-    try:
-        primeira_sugestao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[1]/div[1]/div/div/div[2]/div/span"))
-        )
-        primeira_sugestao.click()
-        print(f"  ✓ Paciente: {nome_paciente}")
-        return True
-    except Exception as e:
-        print(f"  ⚠ Paciente '{nome_paciente}' não encontrado no sistema")
-        # Limpa o campo do paciente
+    for tentativa in range(2):
         try:
+            campo_paciente = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[1]/div[1]/div/div/div[1]/input"))
+            )
+            driver.execute_script("arguments[0].scrollIntoView(true);", campo_paciente)
             campo_paciente.clear()
-        except:
-            pass
-        return False
+            campo_paciente.send_keys(nome_paciente)
+            time.sleep(1.5)  # Aguarda autocomplete carregar
+
+            primeira_sugestao = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[1]/div[1]/div/div/div[2]/div/span"))
+            )
+            primeira_sugestao.click()
+            print(f"  ✓ Paciente: {nome_paciente}")
+            return True
+        except Exception as e:
+            if tentativa == 0:
+                time.sleep(1)  # pausa antes de tentar novamente
+                continue
+            print(f"  ⚠ Paciente '{nome_paciente}' não encontrado no sistema")
+            try:
+                campo_paciente = driver.find_element(By.XPATH, "/html/body/div[1]/main/div[2]/form/div[1]/div[1]/div/div/div[1]/input")
+                campo_paciente.clear()
+            except:
+                pass
+            return False
 
 def preencher_numero_guia(driver, wait, numero_guia):
     """Preenche o número da guia"""
@@ -231,13 +235,15 @@ def cadastrar_guia(driver, wait, guia):
         print(f"Grupo: {guia['grupo']}")
         print(f"Especialidades: {len(guia['especialidades'])}")
         
-        # Clica no botão Nova Guia
-        botao_nova_guia = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[1]/button"))
-        )
+        print(f"  URL: {driver.current_url}")
+        # Sem wait.until para evitar GetHandleVerifier durante polling
+        time.sleep(1.5)
+        botao_nova_guia = driver.find_element(By.XPATH, "/html/body/div[1]/main/div[1]/div[2]/button")
+        print(f"  Botão encontrado: '{botao_nova_guia.text.strip()}'")
         botao_nova_guia.click()
-        time.sleep(2.2)
-        
+        print("  Clique realizado, aguardando formulário...")
+        time.sleep(2.5)  # Aguarda a navegação/animação completar
+
         # Preenche o paciente - se não encontrar, clica em voltar e pula esta guia
         if not preencher_paciente(driver, wait, guia['nome_beneficiario']):
             print("✗ Guia pulada: Paciente não encontrado")
@@ -267,27 +273,31 @@ def cadastrar_guia(driver, wait, guia):
         preencher_periodicidade(driver, wait, PERIODICIDADE)  # NOVO: Preenche a periodicidade
         preencher_status_inicial(driver, wait, STATUS_INICIAL)
         
-        # Clica no botão Criar Guia
+        # Clica no botão Criar Guia via JS
         botao_criar = wait.until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/div[2]/form/div[9]/button[2]"))
         )
-        botao_criar.click()
-        
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", botao_criar)
+        time.sleep(0.3)
+        driver.execute_script("arguments[0].click();", botao_criar)
+
         print("✓ Guia cadastrada com sucesso!")
         time.sleep(1.5)  # Aguarda a página processar
-        
-        # Clica no botão Voltar para retornar à listagem de guias
+
+        # Clica no botão Voltar para retornar à listagem de guias via JS
         botao_voltar = wait.until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/div[1]/div/div[1]/button"))
         )
-        botao_voltar.click()
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", botao_voltar)
+        time.sleep(0.2)
+        driver.execute_script("arguments[0].click();", botao_voltar)
         time.sleep(2)  # Aguarda voltar à tela inicial
         
         return True, "Sucesso"
         
     except Exception as e:
         msg_erro = str(e)
-        print(f"✗ Erro ao cadastrar guia: {msg_erro}")
+        print(f"✗ Erro ao cadastrar guia [{type(e).__name__}]: {msg_erro}")
         # Tenta voltar para a tela inicial em caso de erro
         try:
             # Primeiro tenta o botão voltar do formulário de cadastro
